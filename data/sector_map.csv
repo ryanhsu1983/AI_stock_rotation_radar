@@ -1,0 +1,13 @@
+sector,symbol,name,role,overseas_reference
+記憶體,2408,南亞科,DRAM,SK hynix|Micron|Samsung Electronics
+記憶體,2344,華邦電,利基型記憶體,SK hynix|Micron
+記憶體,8299,群聯,NAND控制IC,Micron|Western Digital
+PCB/載板,3037,欣興,ABF載板,Ibiden|Shinko
+PCB/載板,8046,南電,ABF載板,Ibiden|Shinko
+PCB/載板,2368,金像電,AI伺服器PCB,Isola|TTM Technologies
+CPO/矽光子,3163,波若威,光通訊模組,Coherent|Lumentum|Broadcom
+CPO/矽光子,3363,上詮,光纖元件,Coherent|Lumentum
+CPO/矽光子,4979,華星光,光通訊元件,Coherent|Lumentum
+被動元件,2327,國巨,MLCC/電阻,Murata|TDK
+被動元件,2492,華新科,MLCC/電阻,Murata|TDK
+被動元件,2456,奇力新,電感,Yageo|TDK

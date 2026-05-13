@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.ruff_cache/
+.venv/
+reports/
+raw_data/
+processed_data/
+data/*.generated.csv
+data/*.refreshed.csv
