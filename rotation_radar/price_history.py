@@ -8,22 +8,25 @@ def build_price_history_from_processed(
     processed_root: str | Path,
     output_path: str | Path,
     symbols: set[str] | None = None,
+    market_quotes_path: str | Path | None = None,
 ) -> Path:
-    rows_by_symbol: dict[str, list[dict[str, float | str]]] = {}
+    rows_by_symbol = _load_existing_history(output_path, symbols)
     root = Path(processed_root)
-    if not root.exists():
-        return Path(output_path)
+    if root.exists():
+        for folder in sorted(path for path in root.iterdir() if path.is_dir()):
+            trade_date = _display_date(folder.name)
+            for path in folder.glob("*prices*.csv"):
+                for row in _read_csv(path):
+                    symbol = (row.get("證券代號") or row.get("代號") or "").strip()
+                    if not symbol or (symbols and symbol not in symbols):
+                        continue
+                    item = _ohlc_row(symbol, trade_date, row)
+                    if item:
+                        rows_by_symbol.setdefault(symbol, []).append(item)
 
-    for folder in sorted(path for path in root.iterdir() if path.is_dir()):
-        trade_date = _display_date(folder.name)
-        for path in folder.glob("*prices*.csv"):
-            for row in _read_csv(path):
-                symbol = (row.get("證券代號") or row.get("代號") or "").strip()
-                if not symbol or (symbols and symbol not in symbols):
-                    continue
-                item = _ohlc_row(symbol, trade_date, row)
-                if item:
-                    rows_by_symbol.setdefault(symbol, []).append(item)
+    if market_quotes_path:
+        for item in _latest_quote_rows(market_quotes_path, symbols):
+            rows_by_symbol.setdefault(str(item["symbol"]), []).append(item)
 
     output_rows: list[dict[str, float | str]] = []
     for symbol, rows in rows_by_symbol.items():
@@ -75,6 +78,30 @@ def load_price_history(path: str | Path | None) -> dict[str, list[dict[str, floa
     return {symbol: rows[-23:] for symbol, rows in history.items()}
 
 
+def _load_existing_history(path: str | Path, symbols: set[str] | None) -> dict[str, list[dict[str, float | str]]]:
+    csv_path = Path(path)
+    if not csv_path.exists():
+        return {}
+    rows_by_symbol: dict[str, list[dict[str, float | str]]] = {}
+    for row in _read_csv(csv_path):
+        symbol = row.get("symbol", "").strip()
+        if not symbol or (symbols and symbol not in symbols):
+            continue
+        item = {
+            "symbol": symbol,
+            "date": row.get("date", ""),
+            "open": _number(row.get("open")),
+            "high": _number(row.get("high")),
+            "low": _number(row.get("low")),
+            "close": _number(row.get("close")),
+            "ma5": _number(row.get("ma5")),
+            "ma20": _number(row.get("ma20")),
+            "ma60": _number(row.get("ma60")),
+        }
+        rows_by_symbol.setdefault(symbol, []).append(item)
+    return rows_by_symbol
+
+
 def _read_csv(path: str | Path) -> list[dict[str, str]]:
     with Path(path).open("r", encoding="utf-8-sig", newline="") as handle:
         return [dict(row) for row in csv.DictReader(handle)]
@@ -98,6 +125,38 @@ def _ohlc_row(symbol: str, trade_date: str, row: dict[str, str]) -> dict[str, fl
         "ma20": close,
         "ma60": close,
     }
+
+
+def _latest_quote_rows(path: str | Path, symbols: set[str] | None) -> list[dict[str, float | str]]:
+    csv_path = Path(path)
+    if not csv_path.exists():
+        return []
+    rows: list[dict[str, float | str]] = []
+    for row in _read_csv(csv_path):
+        symbol = row.get("symbol", "").strip()
+        if not symbol or (symbols and symbol not in symbols):
+            continue
+        open_ = _number_or_none(row.get("open"))
+        high = _number_or_none(row.get("high"))
+        low = _number_or_none(row.get("low"))
+        close = _number_or_none(row.get("price"))
+        trade_date = _display_date(row.get("quote_date", ""))
+        if None in {open_, high, low, close} or not trade_date:
+            continue
+        rows.append(
+            {
+                "symbol": symbol,
+                "date": trade_date,
+                "open": open_,
+                "high": high,
+                "low": low,
+                "close": close,
+                "ma5": close,
+                "ma20": close,
+                "ma60": close,
+            }
+        )
+    return rows
 
 
 def _display_date(value: str) -> str:

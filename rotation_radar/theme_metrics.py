@@ -1,0 +1,78 @@
+from __future__ import annotations
+
+import csv
+from collections import defaultdict
+from pathlib import Path
+from typing import Any
+
+
+ThemeRows = dict[str, list[dict[str, float | str]]]
+
+
+def build_sector_theme_metrics(
+    market_quotes_path: str | Path,
+    base_stock_metrics_path: str | Path,
+    limit: int = 3,
+) -> ThemeRows:
+    symbol_theme = _load_symbol_theme(base_stock_metrics_path)
+    sector_totals: dict[str, float] = defaultdict(float)
+    theme_totals: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+
+    for row in _read_csv(market_quotes_path):
+        sector = row.get("sector", "").strip()
+        symbol = row.get("symbol", "").strip()
+        amount = _num(row.get("amount_million"))
+        if not sector or amount <= 0:
+            continue
+        sector_totals[sector] += amount
+        theme = symbol_theme.get(symbol)
+        if theme and theme != sector:
+            theme_totals[sector][theme] += amount
+
+    result: ThemeRows = {}
+    for sector, themes in theme_totals.items():
+        total = sector_totals.get(sector, 0.0)
+        if total <= 0:
+            continue
+        rows: list[dict[str, float | str]] = []
+        for theme, amount in sorted(themes.items(), key=lambda item: item[1], reverse=True)[:limit]:
+            rows.append(
+                {
+                    "theme": theme,
+                    "amount_million": amount,
+                    "share": amount / total * 100,
+                }
+            )
+        if rows:
+            result[sector] = rows
+    return result
+
+
+def _load_symbol_theme(path: str | Path) -> dict[str, str]:
+    csv_path = Path(path)
+    if not csv_path.exists():
+        return {}
+    themes: dict[str, str] = {}
+    for row in _read_csv(csv_path):
+        symbol = row.get("symbol", "").strip()
+        theme = row.get("sector", "").strip()
+        if symbol and theme:
+            themes[symbol] = theme
+    return themes
+
+
+def _read_csv(path: str | Path) -> list[dict[str, str]]:
+    with Path(path).open("r", encoding="utf-8-sig", newline="") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def _num(value: Any) -> float:
+    if value is None:
+        return 0.0
+    raw = str(value).replace(",", "").strip()
+    if raw in {"", "-", "--"}:
+        return 0.0
+    try:
+        return float(raw)
+    except ValueError:
+        return 0.0

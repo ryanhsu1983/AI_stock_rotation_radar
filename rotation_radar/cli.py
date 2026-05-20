@@ -20,6 +20,7 @@ from .report import render_report
 from .scoring import build_results
 from .sector_metrics_builder import build_sector_metrics_from_market_quotes
 from .stock_screener import build_market_stock_candidates, export_hot_sector_symbols
+from .theme_metrics import build_sector_theme_metrics
 
 
 def main() -> None:
@@ -113,9 +114,14 @@ def main() -> None:
             processed_root=args.processed_output_dir,
             output_path=args.price_history_file,
             symbols={stock.symbol for stock in stocks},
+            market_quotes_path=market_quotes_path,
         )
         price_history = load_price_history(args.price_history_file)
-        _write_report(sectors, stocks, args.output, "latest report with refreshed quotes", price_history)
+        sector_themes = build_sector_theme_metrics(
+            market_quotes_path=market_quotes_path,
+            base_stock_metrics_path=Path(args.data_dir) / "stock_metrics.csv",
+        )
+        _write_report(sectors, stocks, args.output, "latest report with refreshed quotes", price_history, sector_themes)
         return
 
     if args.build_market_universe:
@@ -296,7 +302,7 @@ def main() -> None:
     _write_report(sectors, stocks, args.output, data_source, price_history)
 
 
-def _write_report(sectors, stocks, output_path: str, data_source: str, price_history=None) -> None:
+def _write_report(sectors, stocks, output_path: str, data_source: str, price_history=None, sector_themes=None) -> None:
     sector_results, stock_results = build_results(sectors, stocks)
 
     report = Report(
@@ -309,6 +315,7 @@ def _write_report(sectors, stocks, output_path: str, data_source: str, price_his
         sector_results=sector_results,
         stock_results=stock_results,
         price_history=price_history or {},
+        sector_themes=sector_themes or {},
     )
 
     output = Path(output_path)
