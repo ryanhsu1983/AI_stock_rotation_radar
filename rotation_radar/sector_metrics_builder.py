@@ -34,7 +34,7 @@ def build_sector_metrics_from_market_quotes(
         prev_share = _number(base_row.get("capital_share")) or 0.0
         prev_amount = _number(base_row.get("turnover_value")) or 0.0
         turnover_change_score = _change_score(amount, prev_amount)
-        capital_score = (amount / max_amount * 100) * 0.55 + share * 3.0 + active_ratio * 0.15
+        capital_score = amount / max_amount * 100
 
         output_rows.append(
             {

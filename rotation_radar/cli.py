@@ -20,7 +20,7 @@ from .report import render_report
 from .scoring import build_results
 from .sector_metrics_builder import build_sector_metrics_from_market_quotes
 from .stock_screener import build_market_stock_candidates, export_hot_sector_symbols
-from .theme_metrics import build_sector_theme_metrics
+from .theme_metrics import build_theme_market_quotes
 
 
 def main() -> None:
@@ -76,15 +76,26 @@ def main() -> None:
         refreshed_path = Path("data/stock_metrics.refreshed.csv")
         market_quotes_path = _ensure_market_quotes(args, sector_path)
         print(f"Saved {market_quotes_path}")
+        theme_quotes_path = build_theme_market_quotes(
+            market_quotes_path=market_quotes_path,
+            base_stock_metrics_path=Path(args.data_dir) / "stock_metrics.csv",
+            output_path=Path(args.data_dir) / "theme_market_quotes.generated.csv",
+        )
+        print(f"Saved {theme_quotes_path}")
         tracked_refreshed_path = Path("data/stock_metrics.tracked.refreshed.csv")
         refresh_stock_metrics_quotes(
             stock_metrics_path=Path(args.data_dir) / "stock_metrics.csv",
             sector_map_path=sector_path,
             output_path=tracked_refreshed_path,
         )
-        generated_sector_path = _ensure_sector_metrics(args, market_quotes_path)
+        generated_sector_path = build_sector_metrics_from_market_quotes(
+            market_quotes_path=theme_quotes_path,
+            base_sector_metrics_path=Path(args.data_dir) / "sector_metrics.csv",
+            output_path=Path("data/sector_metrics.refreshed.csv"),
+        )
+        print(f"Saved {generated_sector_path}")
         hot_symbols_path = export_hot_sector_symbols(
-            market_quotes_path=market_quotes_path,
+            market_quotes_path=theme_quotes_path,
             sector_metrics_path=generated_sector_path,
             output_path=args.hot_sector_symbols_output,
         )
@@ -92,7 +103,7 @@ def main() -> None:
         if not args.skip_depth_refresh:
             _refresh_latest_depth_snapshot(args)
         build_market_stock_candidates(
-            market_quotes_path=market_quotes_path,
+            market_quotes_path=theme_quotes_path,
             base_stock_metrics_path=tracked_refreshed_path,
             sector_metrics_path=generated_sector_path,
             output_path=refreshed_path,
@@ -117,11 +128,7 @@ def main() -> None:
             market_quotes_path=market_quotes_path,
         )
         price_history = load_price_history(args.price_history_file)
-        sector_themes = build_sector_theme_metrics(
-            market_quotes_path=market_quotes_path,
-            base_stock_metrics_path=Path(args.data_dir) / "stock_metrics.csv",
-        )
-        _write_report(sectors, stocks, args.output, "latest report with refreshed quotes", price_history, sector_themes)
+        _write_report(sectors, stocks, args.output, "latest report with refreshed quotes", price_history)
         return
 
     if args.build_market_universe:
@@ -309,8 +316,8 @@ def _write_report(sectors, stocks, output_path: str, data_source: str, price_his
         title="台股產業輪動與波段選股雷達",
         generated_at=datetime.now(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d %H:%M"),
         market_view=(
-            "模型先用全市場成交金額與資金占比排序前三大主族群，"
-            "再於主族群內篩選短線波段個股；子題材只作為個股脈絡，不取代主族群排名。"
+            "模型先抓全市場報價，再把已標記股票映射到記憶體、PCB/載板、CPO/矽光子、被動元件等市場題材，"
+            "以題材資金占比與成交活性排序前三名，並在同一題材池內篩選短線波段個股。"
         ),
         sector_results=sector_results,
         stock_results=stock_results,

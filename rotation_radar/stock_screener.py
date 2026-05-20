@@ -80,12 +80,8 @@ def export_hot_sector_symbols(
 def _candidate_row(quote: dict[str, str], base: dict[str, str] | None) -> dict[str, str]:
     if base:
         row = dict(base)
-        sub_theme = row.get("sector", "").strip()
-        parent_sector = quote["sector"]
-        row["sector"] = parent_sector
+        row["sector"] = quote["sector"]
         row["close"] = quote["price"]
-        if sub_theme and sub_theme != parent_sector and f"子題材：{sub_theme}" not in row.get("thesis", ""):
-            row["thesis"] = f"{row.get('thesis', '').strip()}（子題材：{sub_theme}）"
         _refresh_fair_value(row)
         return row
 

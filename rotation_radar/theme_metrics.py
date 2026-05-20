@@ -9,6 +9,34 @@ from typing import Any
 ThemeRows = dict[str, list[dict[str, float | str]]]
 
 
+def build_theme_market_quotes(
+    market_quotes_path: str | Path,
+    base_stock_metrics_path: str | Path,
+    output_path: str | Path,
+) -> Path:
+    """Write a quote file grouped by market theme instead of exchange industry."""
+
+    symbol_theme = _load_symbol_theme(base_stock_metrics_path)
+    rows: list[dict[str, str]] = []
+    for row in _read_csv(market_quotes_path):
+        symbol = row.get("symbol", "").strip()
+        theme = symbol_theme.get(symbol)
+        if not theme:
+            continue
+        updated = dict(row)
+        updated["sector"] = theme
+        rows.append(updated)
+
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = list(rows[0].keys()) if rows else list(_quote_field_order())
+    with path.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    return path
+
+
 def build_sector_theme_metrics(
     market_quotes_path: str | Path,
     base_stock_metrics_path: str | Path,
@@ -76,3 +104,22 @@ def _num(value: Any) -> float:
         return float(raw)
     except ValueError:
         return 0.0
+
+
+def _quote_field_order() -> tuple[str, ...]:
+    return (
+        "sector",
+        "symbol",
+        "name",
+        "market",
+        "price",
+        "previous_close",
+        "change_pct",
+        "open",
+        "high",
+        "low",
+        "volume_lots",
+        "amount_million",
+        "quote_date",
+        "quote_time",
+    )

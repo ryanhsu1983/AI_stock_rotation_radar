@@ -46,7 +46,7 @@ def _capital_note(metrics: SectorMetrics) -> str:
     if metrics.capital_share > 0 and metrics.capital_share_prev > 0 and turnover_delta is not None:
         return (
             f"資金占比 {metrics.capital_share:.1f}%（前期 {metrics.capital_share_prev:.1f}%，"
-            f"增加 {share_delta:+.1f} 個百分點），成交金額 {metrics.turnover_value:,.0f} 百萬元"
+            f"變化 {share_delta:+.1f} 個百分點），成交金額 {metrics.turnover_value:,.0f} 百萬元"
             f"（前期 {metrics.turnover_value_prev:,.0f} 百萬元，{turnover_delta:+.1f}%）"
         )
     return f"資金流入分數 {metrics.capital_inflow_rank:.0f}/100，成交活性分數 {metrics.turnover_share_change:.0f}/100"

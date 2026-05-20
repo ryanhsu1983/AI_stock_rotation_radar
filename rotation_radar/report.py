@@ -32,8 +32,8 @@ def render_report(report: Report) -> str:
     {_summary_panel(report, top_sectors, buckets)}
     <section class="section">
       <div class="section-head">
-        <h2>產業資金輪動排名</h2>
-        <p>主分類採交易所產業分類；記憶體、PCB/載板、被動元件、CPO/矽光子屬市場題材/供應鏈主題，會以「題材貢獻」呈現，不視為正式父子產業分類。</p>
+        <h2>市場題材資金輪動排名</h2>
+        <p>主分類採市場題材/供應鏈主題，不採半導體、電子零組件等交易所大產業。資金占比以已標記題材股票的成交金額占題材追蹤池成交金額計算。</p>
       </div>
       <div class="sector-grid">
         {''.join(_sector_card(item, index + 1, report) for index, item in enumerate(top_sectors))}
@@ -100,11 +100,10 @@ def _sector_card(item, rank: int, report: Report) -> str:
     share_delta = metrics.capital_share - metrics.capital_share_prev
     turnover_delta = _pct_change(metrics.turnover_value, metrics.turnover_value_prev)
     turnover_text = "資料待補" if turnover_delta is None else f"{turnover_delta:+.1f}%"
-    subthemes = _subtheme_block(report.sector_themes.get(metrics.name, []))
     return f"""
       <article class="sector-card">
         <div class="card-top">
-          <span class="card-label">輪動族群</span>
+          <span class="card-label">輪動題材</span>
           <span class="rank-badge">第 {rank} 名</span>
         </div>
         <h3>{escape(metrics.name)}</h3>
@@ -115,7 +114,6 @@ def _sector_card(item, rank: int, report: Report) -> str:
           <div><span>強勢股比例</span><strong>{metrics.strong_stock_ratio:.0f}/100</strong><em>越高越強</em></div>
           <div><span>過熱風險</span><strong>{metrics.risk_heat:.0f}/100</strong><em>越高越熱</em></div>
         </div>
-        {subthemes}
         <ul>{notes}</ul>
         <div class="tag-row">{catalysts}</div>
         <div class="risk-row">{risks}</div>
@@ -182,25 +180,6 @@ def _stock_card(item: StockResult, report: Report, rank: int) -> str:
         <ul>{notes}</ul>
         <p class="risk-text">風險：{escape(_risk_text(m.risk_reason))}</p>
       </article>
-    """
-
-
-def _subtheme_block(rows: list[dict[str, float | str]]) -> str:
-    if not rows:
-        return '<div class="subthemes empty-subthemes">已標記題材貢獻資料待累積</div>'
-    items = []
-    for row in rows[:3]:
-        theme = escape(str(row.get("theme", "")))
-        share = float(row.get("share", 0.0))
-        items.append(
-            f'<div><span>{theme}</span><strong>{share:.1f}%</strong><i style="width:{min(100, max(0, share)):.1f}%"></i></div>'
-        )
-    return f"""
-        <div class="subthemes">
-          <b>市場題材資金貢獻</b>
-          {''.join(items)}
-          <em>占該主產業成交金額；僅統計已標記題材股票</em>
-        </div>
     """
 
 
@@ -400,14 +379,6 @@ h4 { font-size: 1.16rem; }
 small { color: #6f6a60; font-size: .85rem; }
 .sector-card p, .stock-card p { color: #6f6a60; margin: 0 0 12px; }
 .sector-stats, .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0; }
-.subthemes { margin: 10px 0 12px; padding: 10px; background: #fff; border: 1px solid #ddd6c8; border-radius: 6px; }
-.subthemes b { display: block; margin-bottom: 8px; font-size: .84rem; color: #a16207; }
-.subthemes em { display: block; margin-top: 8px; color: #6f6a60; font-size: .72rem; font-style: normal; }
-.subthemes div { display: grid; grid-template-columns: minmax(74px, 1fr) 48px; gap: 8px; align-items: center; margin-top: 7px; position: relative; }
-.subthemes span { font-weight: 750; color: #171717; }
-.subthemes strong { text-align: right; color: #0f766e; }
-.subthemes i { grid-column: 1 / -1; display: block; height: 5px; border-radius: 999px; background: #0f766e; opacity: .78; }
-.empty-subthemes { color: #6f6a60; font-size: .84rem; }
 ul { padding-left: 18px; margin: 12px 0; color: #38332c; }
 .tag-row, .risk-row, .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag-row span, .chips span, .sector-pill { background: #eef7f4; color: #0f5f58; border-radius: 999px; padding: 4px 8px; font-size: .82rem; font-weight: 700; }
