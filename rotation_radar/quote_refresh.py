@@ -128,7 +128,7 @@ def fetch_quotes(symbols: list[tuple[str, str]], batch_size: int = 80) -> dict[s
         request = Request(
             url,
             headers={
-                "User-Agent": "Mozilla/5.0 AI_stock_single/0.1",
+                "User-Agent": "Mozilla/5.0 AI_stock_rotation_radar/0.1",
                 "Referer": "https://mis.twse.com.tw/stock/index.jsp",
             },
         )

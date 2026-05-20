@@ -1,4 +1,4 @@
-# AI_stock_single
+# AI_stock_rotation_radar
 
 台股產業輪動與 2-6 週波段選股報告產生器。
 

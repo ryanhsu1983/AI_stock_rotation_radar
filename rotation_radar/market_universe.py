@@ -106,7 +106,7 @@ def _sector_for(market: str, industry_code: str, rules: dict[tuple[str, str], st
 
 
 def _fetch_json(url: str) -> list[dict[str, Any]]:
-    request = Request(url, headers={"User-Agent": "Mozilla/5.0 AI_stock_single/0.1"})
+    request = Request(url, headers={"User-Agent": "Mozilla/5.0 AI_stock_rotation_radar/0.1"})
     with urlopen(request, timeout=30) as response:
         return json.loads(response.read().decode("utf-8-sig"))
 

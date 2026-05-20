@@ -24,7 +24,7 @@ def fetch_public_text(url: str, timeout: int = 20) -> str:
         url,
         headers={
             "Accept": "application/json,text/plain,*/*",
-            "User-Agent": "Mozilla/5.0 AI_stock_single/0.1",
+            "User-Agent": "Mozilla/5.0 AI_stock_rotation_radar/0.1",
         },
     )
     try:
