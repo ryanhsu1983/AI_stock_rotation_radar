@@ -1,0 +1,71 @@
+name: Generate rotation report
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_sector_scan:
+        description: "Refresh full-market sector scan instead of using cache"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      skip_depth_refresh:
+        description: "Skip institutional and margin depth refresh"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check Python syntax
+        run: python -m compileall rotation_radar
+
+      - name: Generate latest report
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          args=(--update-latest-report --output reports/latest.html)
+
+          if [ "${{ inputs.force_sector_scan }}" = "true" ]; then
+            args+=(--force-sector-scan)
+          fi
+
+          if [ "${{ inputs.skip_depth_refresh }}" = "true" ]; then
+            args+=(--skip-depth-refresh)
+          fi
+
+          python -m rotation_radar.cli "${args[@]}"
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest-rotation-report
+          path: reports/latest.html
+          if-no-files-found: error
+
+      - name: Upload generated data artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-data
+          path: |
+            data/*.generated.csv
+            data/*.refreshed.csv
+          if-no-files-found: ignore
