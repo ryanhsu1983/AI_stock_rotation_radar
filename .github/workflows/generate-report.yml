@@ -39,14 +39,17 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Restore theme history
+      - name: Restore market data cache
         uses: actions/cache@v4
         with:
-          path: data/theme_history.generated.csv
-          key: theme-history-${{ github.ref_name }}-${{ github.run_id }}
+          path: |
+            data/theme_history.generated.csv
+            raw_data
+            processed_data
+          key: market-data-${{ github.ref_name }}-${{ github.run_id }}
           restore-keys: |
-            theme-history-${{ github.ref_name }}-
-            theme-history-
+            market-data-${{ github.ref_name }}-
+            market-data-
 
       - name: Check Python syntax
         run: python -m compileall rotation_radar

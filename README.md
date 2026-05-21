@@ -49,7 +49,8 @@ python -m rotation_radar.cli --update-latest-report --output reports/latest.html
 - 全市場報價掃描快取 3 天。
 - 題材排名依題材資料庫內股票的成交金額與資金占比重算。
 - 題材短趨勢會更新到 `data/theme_history.generated.csv`，用最近 5 個交易日判斷升溫、降溫或持平。
-- GitHub Actions 會快取 `data/theme_history.generated.csv`，讓自動寄信版本也能跨日累積短趨勢。
+- GitHub Actions 會快取 `data/theme_history.generated.csv`、`raw_data/`、`processed_data/`，讓自動寄信版本能跨日累積短趨勢與法人/融資資料。
+- 法人/融資深度資料會確保最近 5 個交易日可用，並預設只保留最近 30 個日期資料夾，避免長期膨脹。
 - 個股候選池只從熱門題材與高成交金額股票中初篩。
 - 追蹤股報價會在產報告前刷新。
 - 熱門題材前三名會各取成交金額前 40 檔，輸出 `data/hot_sector_symbols.generated.csv`。
