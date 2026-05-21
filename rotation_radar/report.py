@@ -478,7 +478,8 @@ main { padding: 22px max(14px, 4vw) 54px; }
 .brief-head { display: flex; justify-content: space-between; gap: 18px; align-items: baseline; border-bottom: 1px solid #ddd6c8; padding-bottom: 12px; }
 .brief-head span { color: #a16207; font-size: .8rem; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
 .brief-head strong { font-size: clamp(1.15rem, 3vw, 2rem); text-align: right; }
-.brief-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; padding-top: 14px; }
+.brief-grid { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 14px; }
+.brief-grid > div { flex: 1 1 170px; }
 .brief-grid div, .sector-stats div, .metrics div, .valuation-box { background: #fff; border: 1px solid #ddd6c8; border-radius: 6px; padding: 10px; }
 .brief-grid span, .sector-stats span, .metrics span, .valuation-box span { display: block; color: #6f6a60; font-size: .78rem; }
 .brief-grid strong, .sector-stats strong, .metrics strong, .valuation-box strong { display: block; font-size: 1.05rem; }
@@ -486,9 +487,10 @@ main { padding: 22px max(14px, 4vw) 54px; }
 .section-head { display: flex; justify-content: space-between; gap: 20px; align-items: end; margin-bottom: 14px; padding-top: 4px; }
 h2 { margin: 0; font-size: 1.35rem; }
 .section-head p, .hint { margin: 0; color: #6f6a60; max-width: 700px; }
-.sector-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.sector-grid { display: flex; flex-wrap: wrap; gap: 12px; }
 .sector-card, .stock-card, .method-grid div { background: #fffdf8; border: 1px solid #ddd6c8; border-radius: 8px; box-shadow: 0 8px 20px rgba(41, 32, 18, .055); }
 .sector-card, .stock-card { padding: 15px; }
+.sector-card { flex: 1 1 310px; }
 .card-top, .stock-main { display: flex; justify-content: space-between; gap: 14px; align-items: start; }
 .card-label { font-weight: 800; color: #a16207; font-size: .78rem; letter-spacing: .05em; }
 .rank-badge { white-space: nowrap; color: #0d4f49; background: #eef7f4; border: 1px solid #c9e7e1; border-radius: 999px; padding: 5px 10px; font-weight: 850; font-size: .86rem; }
@@ -497,7 +499,8 @@ h3 { font-size: 1.34rem; }
 h4 { font-size: 1.16rem; }
 small { color: #6f6a60; font-size: .85rem; }
 .sector-card p, .stock-card p { color: #6f6a60; margin: 0 0 12px; }
-.sector-stats, .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0; }
+.sector-stats, .metrics { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.sector-stats > div, .metrics > div { flex: 1 1 145px; }
 ul { padding-left: 18px; margin: 12px 0; color: #38332c; }
 .tag-row, .risk-row, .chips, .theme-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag-row span, .chips span, .sector-pill { background: #eef7f4; color: #0f5f58; border-radius: 999px; padding: 4px 8px; font-size: .82rem; font-weight: 700; }
@@ -510,7 +513,8 @@ ul { padding-left: 18px; margin: 12px 0; color: #38332c; }
 .risk-row span { color: #b42318; background: #fff0ee; border-radius: 999px; padding: 4px 8px; font-size: .82rem; }
 .bucket { margin-top: 20px; }
 .bucket > h3 { border-left: 5px solid #a16207; padding-left: 10px; }
-.stock-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.stock-list { display: flex; flex-wrap: wrap; gap: 12px; }
+.stock-card { flex: 1 1 470px; }
 .valuation-box { margin-bottom: 12px; background: #fffaf0; }
 .pe-track { height: 18px; position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; color: #6f6a60; font-size: .76rem; }
 .pe-track:before { content: ""; position: absolute; left: 34px; right: 34px; top: 8px; height: 6px; border-radius: 999px; background: linear-gradient(90deg, #18886f, #d6a642, #c2410c); }
@@ -527,8 +531,9 @@ ul { padding-left: 18px; margin: 12px 0; color: #38332c; }
 .chart-head em:nth-child(4) { color: #7c3aed; }
 .chart-empty { color: #6f6a60; font-size: .86rem; }
 .risk-text { color: #b42318 !important; font-weight: 700; }
-.method-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.method-grid { display: flex; flex-wrap: wrap; gap: 10px; }
 .method-grid div { padding: 14px; }
+.method-grid div { flex: 1 1 230px; }
 .method-grid strong { display: block; margin-bottom: 6px; }
 .method-grid span { color: #6f6a60; }
 .empty { color: #6f6a60; }

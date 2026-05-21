@@ -52,9 +52,9 @@ def main() -> None:
     parser.add_argument("--daily-update", help="Run fetch, normalize, metric build, and report generation for YYYY-MM-DD.")
     parser.add_argument("--fetch-recent-depth", help="Fetch and normalize recent weekday snapshots ending at YYYY-MM-DD.")
     parser.add_argument("--recent-depth-days", type=int, default=5, help="Number of recent weekdays to fetch for depth metrics.")
-    parser.add_argument("--data-retention-days", type=int, default=30, help="Number of dated raw/processed folders to keep locally.")
+    parser.add_argument("--data-retention-days", type=int, default=90, help="Number of dated raw/processed folders to keep locally.")
     parser.add_argument("--fetch-recent-prices", help="Fetch and normalize recent weekday price snapshots ending at YYYY-MM-DD.")
-    parser.add_argument("--recent-price-days", type=int, default=25, help="Number of recent weekdays to fetch for OHLC charts.")
+    parser.add_argument("--recent-price-days", type=int, default=70, help="Number of recent weekdays to fetch for OHLC charts and MA5/20/60.")
     parser.add_argument(
         "--skip-depth-refresh",
         action="store_true",
@@ -136,6 +136,7 @@ def main() -> None:
         )
         sectors = load_sector_metrics(generated_sector_path)
         stocks = load_stock_metrics(refreshed_path)
+        _refresh_recent_price_snapshots(args)
         build_price_history_from_processed(
             processed_root=args.processed_output_dir,
             output_path=args.price_history_file,
@@ -455,8 +456,36 @@ def _refresh_recent_depth_snapshots(args) -> None:
     _prune_date_folders(args.processed_output_dir, args.data_retention_days)
 
 
+def _refresh_recent_price_snapshots(args) -> None:
+    today = datetime.now(ZoneInfo("Asia/Taipei")).date()
+    for trade_date in recent_weekdays(today, args.recent_price_days):
+        ymd = trade_date.strftime("%Y%m%d")
+        processed_dir = Path(args.processed_output_dir) / ymd
+        if _has_price_files(processed_dir):
+            print(f"Using existing price snapshots in {processed_dir}")
+            continue
+
+        saved_raw, errors = fetch_raw_price_snapshots(trade_date, args.raw_output_dir)
+        for path in saved_raw:
+            print(f"Saved {path}")
+        for error in errors:
+            print(f"Warning: {error}")
+
+        raw_dir = Path(args.raw_output_dir) / ymd
+        if raw_dir.exists():
+            for path in normalize_raw_directory(raw_dir, processed_dir):
+                print(f"Saved {path}")
+
+    _prune_date_folders(args.raw_output_dir, args.data_retention_days)
+    _prune_date_folders(args.processed_output_dir, args.data_retention_days)
+
+
 def _has_depth_files(path: Path) -> bool:
     return path.exists() and any(path.glob("*institutional*.csv")) and any(path.glob("*margin*.csv"))
+
+
+def _has_price_files(path: Path) -> bool:
+    return path.exists() and any(path.glob("*prices*.csv"))
 
 
 def _prune_date_folders(root: str | Path, keep_days: int) -> None:

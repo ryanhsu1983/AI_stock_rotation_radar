@@ -32,6 +32,7 @@ def build_price_history_from_processed(
     for symbol, rows in rows_by_symbol.items():
         deduped = {str(row["date"]): row for row in rows}
         ordered = [deduped[key] for key in sorted(deduped)]
+        ordered = _drop_isolated_price_outliers(ordered)
         closes: list[float] = []
         for row in ordered:
             closes.append(float(row["close"]))
@@ -100,6 +101,27 @@ def _load_existing_history(path: str | Path, symbols: set[str] | None) -> dict[s
         }
         rows_by_symbol.setdefault(symbol, []).append(item)
     return rows_by_symbol
+
+
+def _drop_isolated_price_outliers(rows: list[dict[str, float | str]]) -> list[dict[str, float | str]]:
+    if len(rows) < 3:
+        return rows
+
+    cleaned: list[dict[str, float | str]] = []
+    for index, row in enumerate(rows):
+        if index == 0 or index == len(rows) - 1:
+            cleaned.append(row)
+            continue
+
+        prev_close = float(rows[index - 1]["close"])
+        close = float(row["close"])
+        next_close = float(rows[index + 1]["close"])
+        neighbor_low = min(prev_close, next_close)
+        neighbor_high = max(prev_close, next_close)
+        if neighbor_low > 0 and (close < neighbor_low * 0.6 or close > neighbor_high * 1.6):
+            continue
+        cleaned.append(row)
+    return cleaned
 
 
 def _read_csv(path: str | Path) -> list[dict[str, str]]:
