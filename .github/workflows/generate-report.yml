@@ -43,6 +43,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
+            data/market_universe.generated.csv
+            data/sector_map.generated.csv
+            data/market_quotes.generated.csv
             data/theme_history.generated.csv
             raw_data
             processed_data

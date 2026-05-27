@@ -59,7 +59,16 @@ def refresh_market_quotes(
 ) -> Path:
     path = Path(output_path)
     sector_rows = _read_csv(sector_map_path)
-    targets = [(row["symbol"], row.get("market", "TWSE")) for row in sector_rows]
+    targets: list[tuple[str, str]] = []
+    seen_targets: set[tuple[str, str]] = set()
+    for row in sector_rows:
+        symbol = row["symbol"]
+        market = row.get("market", "").strip()
+        row_targets = [(symbol, market)] if market else [(symbol, "TWSE"), (symbol, "TPEx")]
+        for target in row_targets:
+            if target not in seen_targets:
+                seen_targets.add(target)
+                targets.append(target)
     try:
         quotes = fetch_quotes(targets)
     except OSError as exc:
@@ -82,7 +91,7 @@ def refresh_market_quotes(
                 "sector": row["sector"],
                 "symbol": row["symbol"],
                 "name": row["name"],
-                "market": row.get("market", ""),
+                "market": row.get("market", "").strip() or str(quote_row.get("market", "")),
                 "price": _format_number(price),
                 "previous_close": _format_number(previous_close),
                 "change_pct": _format_number(change_pct),
@@ -126,6 +135,9 @@ def fetch_quotes(symbols: list[tuple[str, str]], batch_size: int = 80) -> dict[s
     result: dict[str, dict[str, float | str]] = {}
     for start in range(0, len(symbols), batch_size):
         batch = symbols[start : start + batch_size]
+        market_by_symbol: dict[str, str] = {}
+        for symbol, market in batch:
+            market_by_symbol.setdefault(symbol, market)
         ex_ch = "|".join(_ex_ch(symbol, market) for symbol, market in batch)
         url = f"{MIS_URL}?ex_ch={quote(ex_ch, safe='|')}&json=1&delay=0"
         request = Request(
@@ -142,7 +154,9 @@ def fetch_quotes(symbols: list[tuple[str, str]], batch_size: int = 80) -> dict[s
             price = _number(item.get("z")) or _number(item.get("pz")) or _number(item.get("y"))
             if not symbol or price is None:
                 continue
+            market = _market_from_quote_item(item, market_by_symbol.get(symbol, ""))
             result[symbol] = {
+                "market": market,
                 "price": price,
                 "name": str(item.get("n", "")),
                 "volume_lots": _number(item.get("v")) or 0.0,
@@ -191,6 +205,15 @@ def _refresh_pe_and_fair_value(row: dict[str, str], latest_price: float) -> None
 def _ex_ch(symbol: str, market: str) -> str:
     prefix = "otc" if market in {"TPEx", "OTC"} else "tse"
     return f"{prefix}_{symbol}.tw"
+
+
+def _market_from_quote_item(item: dict[str, str], default: str) -> str:
+    raw = " ".join(str(item.get(key, "")) for key in ("ex", "ch", "key")).lower()
+    if "otc" in raw:
+        return "TPEx"
+    if "tse" in raw:
+        return "TWSE"
+    return default
 
 
 def _read_csv(path: str | Path) -> list[dict[str, str]]:

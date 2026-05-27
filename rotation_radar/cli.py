@@ -10,7 +10,7 @@ from .cache_policy import is_fresh
 from .data_loader import load_dataset, load_sector_metrics, load_stock_metrics
 from .deep_metrics import build_hot_stock_deep_metrics, merge_deep_metrics_into_stock_metrics
 from .demo_data import demo_sectors, demo_stocks
-from .market_universe import build_market_universe
+from .market_universe import MarketUniverseFetchError, build_fallback_universe_from_theme_map, build_market_universe
 from .metrics_builder import update_sector_metrics_from_stocks, update_stock_metrics_from_processed
 from .models import Report
 from .normalize import normalize_raw_directory
@@ -383,11 +383,19 @@ def _ensure_market_universe(args) -> tuple[Path, Path]:
         and is_fresh(sector_path, args.universe_max_age_days)
     ):
         return market_path, sector_path
-    return build_market_universe(
-        rules_path=args.industry_rules_file,
-        output_path=args.market_universe_output,
-        sector_map_output_path=args.sector_map_output,
-    )
+    try:
+        return build_market_universe(
+            rules_path=args.industry_rules_file,
+            output_path=args.market_universe_output,
+            sector_map_output_path=args.sector_map_output,
+        )
+    except (OSError, MarketUniverseFetchError) as exc:
+        print(f"Warning: failed to refresh exchange universe: {exc}")
+        return build_fallback_universe_from_theme_map(
+            theme_map_path=args.theme_map_file,
+            output_path=args.market_universe_output,
+            sector_map_output_path=args.sector_map_output,
+        )
 
 
 def _ensure_market_quotes(args, sector_path: Path) -> Path:
