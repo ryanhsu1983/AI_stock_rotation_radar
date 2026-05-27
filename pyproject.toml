@@ -3,7 +3,11 @@ name = "AI_stock_rotation_radar"
 version = "0.1.0"
 description = "Taiwan market-theme rotation radar and swing-trading HTML report generator."
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "google-api-python-client",
+    "google-auth",
+    "playwright",
+]
 
 [tool.ruff]
 line-length = 120

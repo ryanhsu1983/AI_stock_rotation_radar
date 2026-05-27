@@ -11,7 +11,7 @@
 - 名單分類：可操作、觀察、排除。
 - 多題材標籤：同一檔股票可屬於多個市場題材；報告用深色膠囊標示本期熱門題材，用淺色膠囊標示其他關聯題材。
 - 5 日短趨勢：免費版先呈現當日熱度與近 5 個交易日題材資金變化；資料不足時標示資料累積中。
-- HTML 報告：響應式版面，適合付費訂閱文章或內部投研報告。
+- HTML/PDF 報告：響應式 HTML 會轉成 Google Drive PDF，分成自用日期版與免費觀眾固定版。
 - 範例資料：先用可替換的 demo data 驗證報告格式與評分模型。
 
 ## 預計免費資料來源
@@ -50,7 +50,7 @@ python -m rotation_radar.cli --update-latest-report --output reports/latest.html
 - 報告摘要會顯示報價日期與時間，用來確認本次報告是否真的使用最新行情。
 - 題材排名依題材資料庫內股票的成交金額與資金占比重算。
 - 題材短趨勢會更新到 `data/theme_history.generated.csv`，用最近 5 個交易日判斷升溫、降溫或持平。
-- GitHub Actions 會快取 `data/theme_history.generated.csv`、`raw_data/`、`processed_data/`，讓自動寄信版本能跨日累積短趨勢與法人/融資資料。
+- GitHub Actions 會快取 `data/market_universe.generated.csv`、`data/sector_map.generated.csv`、`data/market_quotes.generated.csv`、`data/theme_history.generated.csv`、`raw_data/`、`processed_data/`，讓每日自動版能跨日累積短趨勢與法人/融資資料。
 - 法人/融資深度資料會確保最近 5 個交易日可用。
 - 近期日 K 圖只顯示最近 5 個交易日，但 MA5/20/60 會回補最近 70 個交易日資料後計算。
 - 原始/清洗資料預設只保留最近 90 個日期資料夾，避免長期膨脹。
@@ -125,6 +125,31 @@ python -m rotation_radar.cli --sector-metrics-file data/sector_metrics.generated
 ```text
 reports/latest.html
 ```
+
+## Google Drive 發布
+
+GitHub Actions 產生 `reports/latest.html` 後，會改為轉成 PDF 並上傳 Google Drive，不再寄信到 `zergva@gmail.com`。
+
+- 自用備份 PDF：`每日題材輪動雷達_YYYYMMDD.pdf`
+- 自用備份資料夾：`1UsIMl0BOH0_K0awNwiQfoJnsCpXyXyMC`
+- 免費觀眾固定 PDF：`每日題材輪動雷達.pdf`
+- 免費觀眾資料夾：`1jSHKWt8KkkewswQfeVyBPFCT7jL1dp8_`
+
+免費觀眾版會優先用固定 file ID 更新；若沒有設定 file ID，會在指定資料夾用同名檔案搜尋並覆蓋。不要手動刪除固定 PDF，否則 Google Drive 分享連結可能改變。
+
+GitHub Actions 需要以下 secrets：
+
+- `GOOGLE_OAUTH_CLIENT_ID`
+- `GOOGLE_OAUTH_CLIENT_SECRET`
+- `GOOGLE_OAUTH_REFRESH_TOKEN`
+
+可選擇用 repo/org variables 或 secrets 覆蓋預設資料夾：
+
+- `ROTATION_REPORT_DRIVE_FOLDER_ID`
+- `ROTATION_PUBLIC_REPORT_DRIVE_FOLDER_ID`
+- `ROTATION_PUBLIC_REPORT_DRIVE_FILE_ID`
+
+若 Google OAuth log 顯示 `invalid_grant`、`invalid_token`、`401` 或 `403`，通常應先更新 `GOOGLE_OAUTH_REFRESH_TOKEN`，不要先大幅修改程式。
 
 ## 資料檔案
 
