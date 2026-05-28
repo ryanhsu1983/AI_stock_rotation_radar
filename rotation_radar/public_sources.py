@@ -147,12 +147,12 @@ def fetch_raw_market_snapshots(trade_date: date, output_dir: str | Path) -> tupl
     return saved, errors
 
 
-def fetch_raw_price_snapshots(trade_date: date, output_dir: str | Path) -> tuple[list[Path], list[str]]:
+def fetch_raw_price_snapshots(trade_date: date, output_dir: str | Path, force: bool = False) -> tuple[list[Path], list[str]]:
     saved: list[Path] = []
     errors: list[str] = []
     for endpoint in [build_twse_endpoints(trade_date)[0], build_tpex_endpoints(trade_date)[0]]:
         output_path = Path(output_dir) / trade_date.strftime("%Y%m%d") / f"{endpoint.name}.json"
-        if output_path.exists():
+        if output_path.exists() and not force:
             saved.append(output_path)
             continue
         try:

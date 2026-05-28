@@ -136,7 +136,8 @@ def main() -> None:
         )
         sectors = load_sector_metrics(generated_sector_path)
         stocks = load_stock_metrics(refreshed_path)
-        _refresh_recent_price_snapshots(args)
+        candidate_symbols = {stock.symbol for stock in stocks}
+        _refresh_recent_price_snapshots(args, required_symbols=candidate_symbols)
         theme_history_path = backfill_theme_history_from_processed(
             processed_root=args.processed_output_dir,
             theme_map_path=args.theme_map_file,
@@ -472,16 +473,20 @@ def _refresh_recent_depth_snapshots(args) -> None:
     _prune_date_folders(args.processed_output_dir, args.data_retention_days)
 
 
-def _refresh_recent_price_snapshots(args) -> None:
+def _refresh_recent_price_snapshots(args, required_symbols: set[str] | None = None) -> None:
     today = datetime.now(ZoneInfo("Asia/Taipei")).date()
-    for trade_date in recent_weekdays(today, args.recent_price_days):
+    for index, trade_date in enumerate(recent_weekdays(today, args.recent_price_days)):
         ymd = trade_date.strftime("%Y%m%d")
         processed_dir = Path(args.processed_output_dir) / ymd
-        if _has_price_files(processed_dir):
+        symbols_to_check = required_symbols if index < 7 else None
+        force_refresh = processed_dir.exists() and not _has_price_files(processed_dir, symbols_to_check)
+        if _has_price_files(processed_dir, symbols_to_check):
             print(f"Using existing price snapshots in {processed_dir}")
             continue
+        if force_refresh:
+            print(f"Refreshing incomplete price snapshots in {processed_dir}")
 
-        saved_raw, errors = fetch_raw_price_snapshots(trade_date, args.raw_output_dir)
+        saved_raw, errors = fetch_raw_price_snapshots(trade_date, args.raw_output_dir, force=force_refresh)
         for path in saved_raw:
             print(f"Saved {path}")
         for error in errors:
@@ -500,12 +505,26 @@ def _has_depth_files(path: Path) -> bool:
     return path.exists() and any(path.glob("*institutional*.csv")) and any(path.glob("*margin*.csv"))
 
 
-def _has_price_files(path: Path) -> bool:
-    return (
-        path.exists()
-        and any(path.glob("twse_prices*.csv"))
-        and any(path.glob("tpex_prices*.csv"))
-    )
+def _has_price_files(path: Path, required_symbols: set[str] | None = None) -> bool:
+    has_files = path.exists() and any(path.glob("twse_prices*.csv")) and any(path.glob("tpex_prices*.csv"))
+    if not has_files:
+        return False
+    if not required_symbols:
+        return True
+    found_symbols: set[str] = set()
+    for csv_path in path.glob("*prices*.csv"):
+        with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
+            for row in csv.DictReader(handle):
+                symbol = (row.get("證券代號") or row.get("代號") or "").strip()
+                if symbol in required_symbols:
+                    found_symbols.add(symbol)
+    missing = sorted(required_symbols - found_symbols)
+    if missing:
+        preview = ", ".join(missing[:8])
+        suffix = "..." if len(missing) > 8 else ""
+        print(f"Warning: price snapshots in {path} miss {len(missing)} report symbols: {preview}{suffix}")
+        return False
+    return True
 
 
 def _prune_date_folders(root: str | Path, keep_days: int) -> None:
