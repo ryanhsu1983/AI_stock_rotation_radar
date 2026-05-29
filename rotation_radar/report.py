@@ -202,16 +202,17 @@ def _stock_section(bucket: Bucket, buckets: dict[Bucket, list[StockResult]], rep
         body = '<div class="stock-list">' + "".join(_stock_card(item, report, index + 1) for index, item in enumerate(rows)) + "</div>"
     note = _bucket_note(bucket, total, len(rows))
     bucket_class = _bucket_class(bucket)
+    bucket_head = _bucket_header(bucket)
     if not rows:
         return f"""
       <div class="bucket bucket-empty {bucket_class}">
-        <h3>{bucket.value}</h3>
+        {bucket_head}
         <p class="bucket-note">{note} 目前沒有符合條件的個股。</p>
       </div>
     """
     return f"""
       <div class="bucket {bucket_class}">
-        <h3>{bucket.value}</h3>
+        {bucket_head}
         <p class="bucket-note">{note}</p>
         {body}
       </div>
@@ -224,6 +225,21 @@ def _bucket_class(bucket: Bucket) -> str:
     if bucket is Bucket.WATCH:
         return "bucket-watch"
     return "bucket-excluded"
+
+
+def _bucket_header(bucket: Bucket) -> str:
+    if bucket is Bucket.ACTIONABLE:
+        kicker = "分類 1 / 條件最完整"
+    elif bucket is Bucket.WATCH:
+        kicker = "分類 2 / 接近條件"
+    else:
+        kicker = "分類 3 / 風險排除"
+    return f"""
+        <div class="bucket-head">
+          <span>{kicker}</span>
+          <h3>{bucket.value}</h3>
+        </div>
+    """
 
 
 def _bucket_note(bucket: Bucket, total: int, shown: int) -> str:
@@ -782,15 +798,17 @@ ul { padding-left: 18px; margin: 12px 0; color: #38332c; }
 .stock-card .theme-note { margin: 0 0 10px; color: #6f6a60; font-size: .76rem; line-height: 1.45; }
 .risk-row { margin-top: 8px; }
 .risk-row span { color: #b42318; background: #fff0ee; border-radius: 999px; padding: 4px 8px; font-size: .82rem; }
-.bucket { margin-top: 20px; padding: 12px 14px; border-radius: 10px; border: 1px solid #ddd6c8; border-left: 7px solid #a16207; }
-.bucket-actionable { background: #fffaf0; border-left-color: #a16207; }
-.bucket-watch { background: #eef7f4; border-left-color: #0f766e; }
-.bucket-excluded { background: #fff1ee; border-left-color: #b42318; }
-.bucket > h3 { padding-left: 0; font-size: 1.34rem; }
-.bucket-actionable > h3 { color: #171717; }
-.bucket-watch > h3 { color: #0d4f49; }
-.bucket-excluded > h3 { color: #8f1d14; }
-.bucket-note { margin: -2px 0 10px; color: #6f6a60; font-size: .82rem; }
+.bucket { margin-top: 22px; padding: 0 14px 14px; border-radius: 12px; border: 1px solid #ddd6c8; overflow: hidden; background: #fffdf8; }
+.bucket-actionable { border-color: #d8b56f; }
+.bucket-watch { border-color: #a9d4cb; }
+.bucket-excluded { border-color: #e0aaa1; }
+.bucket-head { margin: 0 -14px 12px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.bucket-head span { font-size: .76rem; font-weight: 850; letter-spacing: .06em; }
+.bucket-head h3 { margin: 0; font-size: 1.34rem; line-height: 1.2; }
+.bucket-actionable .bucket-head { background: #a16207; color: #fffdf8; }
+.bucket-watch .bucket-head { background: #0f766e; color: #fffdf8; }
+.bucket-excluded .bucket-head { background: #b42318; color: #fffdf8; }
+.bucket-note { margin: 0 0 10px; color: #6f6a60; font-size: .82rem; }
 .stock-list { display: flex; flex-wrap: wrap; gap: 12px; }
 .stock-card { flex: 1 1 470px; }
 .excluded-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
@@ -887,13 +905,14 @@ ul { padding-left: 18px; margin: 12px 0; color: #38332c; }
   .stock-card .pe-track, .stock-card .hint, .stock-card .valuation-box em { display: none; }
   .stock-card .chart svg { height: 92px; }
   .stock-card .chart-note { display: none; }
-  .section-head, .bucket > h3, .bucket-note { break-after: avoid; page-break-after: avoid; }
+  .section-head, .bucket-head, .bucket-note { break-after: avoid; page-break-after: avoid; }
   .sector-card, .stock-card, .digest, .brief, .chart, .excluded-item { break-inside: avoid; page-break-inside: avoid; }
-  .bucket { break-inside: auto; page-break-inside: auto; margin-top: 12px; padding: 9px 10px; border-left-width: 6px; }
+  .bucket { break-inside: auto; page-break-inside: auto; margin-top: 12px; padding: 0 10px 9px; }
   .bucket-empty { margin-top: 8px; }
-  .bucket > h3, .bucket-empty h3 { font-size: 1.12rem; margin-bottom: 4px; }
+  .bucket-head { margin: 0 -10px 7px; padding: 7px 10px; }
+  .bucket-head h3, .bucket-empty .bucket-head h3 { font-size: 1.12rem; }
+  .bucket-head span { font-size: .66rem; }
   .bucket-empty .bucket-note { margin-bottom: 4px; }
-  .bucket > h3 { margin-top: 0; }
   .excluded-list { gap: 7px; }
   .excluded-item { padding: 8px; font-size: .72rem; }
   .excluded-item span, .excluded-item em { font-size: .68rem; }
