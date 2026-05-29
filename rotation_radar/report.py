@@ -79,7 +79,7 @@ def _rotation_digest(report: Report, top_sectors) -> str:
             flow_text = (
                 f"近 5 個交易日資金主線以 {escape(leader_name)} 為核心；"
                 f"{_rolling_share_sentence(trend, leader.metrics.capital_share, leader.metrics.capital_share_prev)}，"
-                f"{escape(str(trend.get('status', '持平')))}訊號優先觀察是否延續。"
+                f"{_rolling_window_status(trend)}訊號優先觀察是否延續。"
             )
         elif days >= 2:
             flow_text = (
@@ -166,7 +166,7 @@ def _sector_card(item, rank: int, report: Report) -> str:
           <div><span>資金占比</span><strong>{metrics.capital_share:.1f}%</strong><em>{_rolling_share_text(trend, metrics.capital_share, metrics.capital_share_prev)}</em></div>
           <div><span>成交金額</span><strong>{metrics.turnover_value:,.0f}百萬</strong><em>{turnover_text}</em></div>
           <div><span>近5日資金</span><strong>{_trend_amount(trend)}</strong><em>{_trend_days(trend)}</em></div>
-          <div><span>5日短趨勢</span><strong>{escape(str(trend.get("status", "今日觀察")))}</strong><em>{_trend_detail(trend)}</em></div>
+          <div><span>5日占比趨勢</span><strong>{_rolling_window_status(trend)}</strong><em>{_trend_detail(trend)}</em></div>
           <div><span>強勢股比例</span><strong>{metrics.strong_stock_ratio:.0f}/100</strong><em>越高越強</em></div>
           <div><span>過熱風險</span><strong>{metrics.risk_heat:.0f}/100</strong><em>越高越熱</em></div>
         </div>
@@ -328,6 +328,19 @@ def _rolling_share_text(trend: dict[str, float | str], current: float, previous:
     if current_avg > 0 and previous_avg > 0:
         return f"前一日5日窗 {previous_avg:.1f}% → 本期 {current_avg:.1f}%"
     return _share_change_text(current, previous)
+
+
+def _rolling_window_status(trend: dict[str, float | str]) -> str:
+    current_avg = float(trend.get("avg_share", 0) or 0)
+    previous_avg = float(trend.get("previous_avg_share", 0) or 0)
+    if current_avg <= 0 or previous_avg <= 0:
+        return escape(str(trend.get("status", "今日觀察")))
+    change = (current_avg - previous_avg) / previous_avg * 100
+    if change >= 1:
+        return "升溫"
+    if change <= -1:
+        return "降溫"
+    return "持平"
 
 
 def _trend_range_text(trend: dict[str, float | str], start_key: str, latest_key: str) -> str:
