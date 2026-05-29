@@ -49,7 +49,6 @@ def render_report(report: Report) -> str:
       </div>
       {_stock_section(Bucket.ACTIONABLE, buckets, report)}
       {_stock_section(Bucket.WATCH, buckets, report)}
-      {_stock_section(Bucket.EXCLUDED, buckets, report)}
     </section>
   </main>
 </body>
@@ -116,6 +115,7 @@ def _summary_panel(report: Report, top_sectors, buckets: dict[Bucket, list[Stock
     actionable = len(buckets.get(Bucket.ACTIONABLE, []))
     watch = min(len(buckets.get(Bucket.WATCH, [])), 3)
     excluded = min(len(buckets.get(Bucket.EXCLUDED, [])), 3)
+    excluded_text = _excluded_summary_text(buckets.get(Bucket.EXCLUDED, []))
     return f"""
     <section class="section brief">
       <div class="brief-head">
@@ -125,7 +125,7 @@ def _summary_panel(report: Report, top_sectors, buckets: dict[Bucket, list[Stock
       <div class="brief-grid">
         <div><span>可操作名單</span><strong>{actionable}</strong><em>符合波段條件</em></div>
         <div><span>觀察名單</span><strong>{watch}</strong><em>報告保留前 3 名</em></div>
-        <div><span>排除名單</span><strong>{excluded}</strong><em>摘要列出前 3 名</em></div>
+        <div><span>排除名單</span><strong>{excluded}</strong><em>{excluded_text}</em></div>
         <div><span>核心邏輯</span><strong>資金先行</strong><em>成交金額與題材占比優先</em></div>
         <div><span>報價資料</span><strong>{_quote_date_text(report)}</strong><em>{_quote_time_text(report)}</em></div>
         <div class="brief-wide"><span>明日觀察</span><strong>主線延續 / 擴散 / 過熱</strong><em>{_next_watch_summary(top_sectors)}</em></div>
@@ -144,6 +144,13 @@ def _next_watch_summary(top_sectors) -> str:
         f"{escape(leader)} 是否維持高成交占比；前三題材平均強勢股比例 {avg_strength:.0f}/100；"
         f"最高過熱分數 {max_heat:.0f}/100，越高越要留意追價與隔日換手。"
     )
+
+
+def _excluded_summary_text(rows: list[StockResult]) -> str:
+    names = [item.metrics.name for item in rows[:3]]
+    if not names:
+        return "暫無"
+    return "、".join(escape(name) for name in names)
 
 
 def _sector_card(item, rank: int, report: Report) -> str:
@@ -187,12 +194,19 @@ def _stock_section(bucket: Bucket, buckets: dict[Bucket, list[StockResult]], rep
     elif bucket is Bucket.EXCLUDED:
         rows = rows[:3]
     if not rows:
-        body = '<p class="empty">目前沒有符合條件的個股。</p>'
+        body = ""
     elif bucket is Bucket.EXCLUDED:
         body = '<div class="excluded-list">' + "".join(_excluded_item(item, index + 1) for index, item in enumerate(rows)) + "</div>"
     else:
         body = '<div class="stock-list">' + "".join(_stock_card(item, report, index + 1) for index, item in enumerate(rows)) + "</div>"
     note = _bucket_note(bucket, total, len(rows))
+    if not rows:
+        return f"""
+      <div class="bucket bucket-empty">
+        <h3>{bucket.value}</h3>
+        <p class="bucket-note">{note} 目前沒有符合條件的個股。</p>
+      </div>
+    """
     return f"""
       <div class="bucket">
         <h3>{bucket.value}</h3>
@@ -232,37 +246,41 @@ def _stock_card(item: StockResult, report: Report, rank: int) -> str:
     theme_pills = _stock_theme_pills(item, report)
     return f"""
       <article class="stock-card">
-        <div class="stock-main">
-          <div>
-            <h4>{escape(m.name)} <small>{escape(m.symbol)}</small></h4>
-            {theme_pills}
-            <p>{escape(m.thesis)}</p>
+        <div class="stock-left">
+          <div class="stock-main">
+            <div>
+              <h4>{escape(m.name)} <small>{escape(m.symbol)}</small></h4>
+              {theme_pills}
+              <p>{escape(m.thesis)}</p>
+            </div>
+            <div class="rank-badge">第 {rank} 名</div>
           </div>
-          <div class="rank-badge">第 {rank} 名</div>
+          <div class="metrics">
+            <div><span>收盤價</span><strong>{m.close:.1f} 元</strong></div>
+            <div><span>本益比</span><strong>{_pe_display(m.pe)}</strong></div>
+            <div><span>題材本益比區間</span><strong>{_pe_range_display(m)}</strong></div>
+            <div><span>題材平均本益比</span><strong>{_pe_display(m.sector_pe_avg)}</strong></div>
+          </div>
+          <div class="valuation-box">
+            <span>合理估值推估</span>
+            <strong>{_fair_display(fair_low, fair_avg, fair_high)}</strong>
+            <em>低檔 / 平均 / 高檔本益比推估</em>
+          </div>
+          <div class="pe-track" title="{escape(pe_text)}">
+            <b>低估</b><i style="left:calc(34px + (100% - 68px) * {pe_position:.1f} / 100)"></i><b>高估</b>
+          </div>
+          <p class="hint">{escape(pe_text)}</p>
+          <ul>{notes}</ul>
+          <p class="risk-text">風險：{escape(_risk_text(m.risk_reason))}</p>
         </div>
-        <div class="metrics">
-          <div><span>收盤價</span><strong>{m.close:.1f} 元</strong></div>
-          <div><span>本益比</span><strong>{_pe_display(m.pe)}</strong></div>
-          <div><span>題材本益比區間</span><strong>{_pe_range_display(m)}</strong></div>
-          <div><span>題材平均本益比</span><strong>{_pe_display(m.sector_pe_avg)}</strong></div>
+        <div class="stock-side">
+          {chart}
+          <div class="chips">
+            <span>{_foreign_chip(m)}</span>
+            <span>{_trust_chip(m)}</span>
+            <span>{_margin_chip(m)}</span>
+          </div>
         </div>
-        <div class="valuation-box">
-          <span>合理估值推估</span>
-          <strong>{_fair_display(fair_low, fair_avg, fair_high)}</strong>
-          <em>低檔 / 平均 / 高檔本益比推估</em>
-        </div>
-        <div class="pe-track" title="{escape(pe_text)}">
-          <b>低估</b><i style="left:calc(34px + (100% - 68px) * {pe_position:.1f} / 100)"></i><b>高估</b>
-        </div>
-        <p class="hint">{escape(pe_text)}</p>
-        <div class="chips">
-          <span>{_foreign_chip(m)}</span>
-          <span>{_trust_chip(m)}</span>
-          <span>{_margin_chip(m)}</span>
-        </div>
-        {chart}
-        <ul>{notes}</ul>
-        <p class="risk-text">風險：{escape(_risk_text(m.risk_reason))}</p>
       </article>
     """
 
@@ -814,6 +832,7 @@ ul { padding-left: 18px; margin: 12px 0; color: #38332c; }
   .brief-grid .brief-wide { flex-basis: 340px; }
   .sector-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
   .sector-section { break-before: page; page-break-before: always; }
+  .stock-section { break-before: page; page-break-before: always; }
   .sector-section .section-head { display: block; margin-bottom: 8px; break-inside: avoid; page-break-inside: avoid; }
   .sector-section .section-head p { margin-top: 4px; max-width: none; font-size: .76rem; line-height: 1.35; }
   .sector-card { padding: 9px; }
@@ -835,11 +854,13 @@ ul { padding-left: 18px; margin: 12px 0; color: #38332c; }
     gap: 7px 12px;
     align-items: start;
   }
-  .stock-main, .metrics, .valuation-box, .pe-track, .hint, .chips, .stock-card ul, .risk-text { grid-column: 1; }
-  .stock-card .chart, .stock-card .chart-empty { grid-column: 2; grid-row: 1 / span 8; margin-top: 0; }
+  .stock-left { grid-column: 1; }
+  .stock-side { grid-column: 2; }
+  .stock-card .chart, .stock-card .chart-empty { margin-top: 0; }
+  .stock-card .chips { margin-top: 5px; }
   .stock-card h4 { font-size: 1.02rem; margin: 4px 0; }
   .stock-card p, .stock-card ul { font-size: .72rem; line-height: 1.32; }
-  .stock-card small, .stock-card .theme-pill, .stock-card .rank-badge { font-size: .7rem; }
+  .stock-card small, .stock-card .theme-pill, .stock-card .rank-badge, .stock-card .chips span { font-size: .7rem; }
   .stock-card .metrics > div { flex-basis: 118px; }
   .stock-card .valuation-box, .stock-card .hint { font-size: .7rem; line-height: 1.32; }
   .stock-card .pe-track { height: 14px; margin-top: 4px; font-size: .66rem; }
@@ -847,6 +868,11 @@ ul { padding-left: 18px; margin: 12px 0; color: #38332c; }
   .stock-card .chart-note { display: none; }
   .section-head, .bucket > h3, .bucket-note { break-after: avoid; page-break-after: avoid; }
   .sector-card, .stock-card, .digest, .brief, .chart, .excluded-item { break-inside: avoid; page-break-inside: avoid; }
+  .bucket { break-inside: auto; page-break-inside: auto; margin-top: 14px; }
+  .bucket-empty { margin-top: 8px; }
+  .bucket-empty h3 { font-size: .96rem; margin-bottom: 4px; }
+  .bucket-empty .bucket-note { margin-bottom: 4px; }
+  .bucket > h3 { margin-top: 0; }
   .stock-card .theme-note { display: none; }
   .stock-card p { margin-bottom: 8px; }
   .metrics, .sector-stats { margin: 9px 0; }
