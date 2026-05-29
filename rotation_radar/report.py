@@ -49,6 +49,7 @@ def render_report(report: Report) -> str:
       </div>
       {_stock_section(Bucket.ACTIONABLE, buckets, report)}
       {_stock_section(Bucket.WATCH, buckets, report)}
+      {_stock_section(Bucket.EXCLUDED, buckets, report)}
     </section>
   </main>
 </body>
@@ -200,20 +201,29 @@ def _stock_section(bucket: Bucket, buckets: dict[Bucket, list[StockResult]], rep
     else:
         body = '<div class="stock-list">' + "".join(_stock_card(item, report, index + 1) for index, item in enumerate(rows)) + "</div>"
     note = _bucket_note(bucket, total, len(rows))
+    bucket_class = _bucket_class(bucket)
     if not rows:
         return f"""
-      <div class="bucket bucket-empty">
+      <div class="bucket bucket-empty {bucket_class}">
         <h3>{bucket.value}</h3>
         <p class="bucket-note">{note} 目前沒有符合條件的個股。</p>
       </div>
     """
     return f"""
-      <div class="bucket">
+      <div class="bucket {bucket_class}">
         <h3>{bucket.value}</h3>
         <p class="bucket-note">{note}</p>
         {body}
       </div>
     """
+
+
+def _bucket_class(bucket: Bucket) -> str:
+    if bucket is Bucket.ACTIONABLE:
+        return "bucket-actionable"
+    if bucket is Bucket.WATCH:
+        return "bucket-watch"
+    return "bucket-excluded"
 
 
 def _bucket_note(bucket: Bucket, total: int, shown: int) -> str:
@@ -772,13 +782,19 @@ ul { padding-left: 18px; margin: 12px 0; color: #38332c; }
 .stock-card .theme-note { margin: 0 0 10px; color: #6f6a60; font-size: .76rem; line-height: 1.45; }
 .risk-row { margin-top: 8px; }
 .risk-row span { color: #b42318; background: #fff0ee; border-radius: 999px; padding: 4px 8px; font-size: .82rem; }
-.bucket { margin-top: 20px; }
-.bucket > h3 { border-left: 5px solid #a16207; padding-left: 10px; }
+.bucket { margin-top: 20px; padding: 12px 14px; border-radius: 10px; border: 1px solid #ddd6c8; border-left: 7px solid #a16207; }
+.bucket-actionable { background: #fffaf0; border-left-color: #a16207; }
+.bucket-watch { background: #eef7f4; border-left-color: #0f766e; }
+.bucket-excluded { background: #fff1ee; border-left-color: #b42318; }
+.bucket > h3 { padding-left: 0; font-size: 1.34rem; }
+.bucket-actionable > h3 { color: #171717; }
+.bucket-watch > h3 { color: #0d4f49; }
+.bucket-excluded > h3 { color: #8f1d14; }
 .bucket-note { margin: -2px 0 10px; color: #6f6a60; font-size: .82rem; }
 .stock-list { display: flex; flex-wrap: wrap; gap: 12px; }
 .stock-card { flex: 1 1 470px; }
 .excluded-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.excluded-item { background: #fffdf8; border: 1px solid #ddd6c8; border-radius: 8px; padding: 12px; }
+.excluded-item { background: #fffdf8; border: 1px solid #e2c8c2; border-radius: 8px; padding: 12px; }
 .excluded-item strong, .excluded-item span, .excluded-item em { display: block; }
 .excluded-item span { color: #6f6a60; font-size: .82rem; margin: 4px 0; }
 .excluded-item em { color: #b42318; font-size: .82rem; font-style: normal; }
@@ -873,11 +889,14 @@ ul { padding-left: 18px; margin: 12px 0; color: #38332c; }
   .stock-card .chart-note { display: none; }
   .section-head, .bucket > h3, .bucket-note { break-after: avoid; page-break-after: avoid; }
   .sector-card, .stock-card, .digest, .brief, .chart, .excluded-item { break-inside: avoid; page-break-inside: avoid; }
-  .bucket { break-inside: auto; page-break-inside: auto; margin-top: 14px; }
+  .bucket { break-inside: auto; page-break-inside: auto; margin-top: 12px; padding: 9px 10px; border-left-width: 6px; }
   .bucket-empty { margin-top: 8px; }
-  .bucket-empty h3 { font-size: .96rem; margin-bottom: 4px; }
+  .bucket > h3, .bucket-empty h3 { font-size: 1.12rem; margin-bottom: 4px; }
   .bucket-empty .bucket-note { margin-bottom: 4px; }
   .bucket > h3 { margin-top: 0; }
+  .excluded-list { gap: 7px; }
+  .excluded-item { padding: 8px; font-size: .72rem; }
+  .excluded-item span, .excluded-item em { font-size: .68rem; }
   .stock-card .theme-note { display: none; }
   .stock-card p { margin-bottom: 8px; }
   .metrics, .sector-stats { margin: 9px 0; }
